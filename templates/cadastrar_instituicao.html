@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <title>Cadastro de Instituição</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 40px;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        form {
+            max-width: 500px;
+            margin: auto;
+            background-color: #fff;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 6px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 16px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1a252f;
+        }
+
+        #resultado {
+            font-weight: bold;
+            margin-top: 1em;
+            text-align: center;
+        }
+
+        #resultado.sucesso {
+            color: green;
+        }
+
+        #resultado.erro {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cadastro de Instituição</h1>
+
+    <form id="form-instituicao">
+        <label>Nome Fantasia:
+            <input type="text" id="nome_fantasia" required />
+        </label>
+
+        <label>CNPJ:
+            <input type="text" id="cnpj" pattern="\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}" 
+                   title="Formato esperado: 00.000.000/0000-00 ou somente números" required />
+        </label>
+
+        <button type="submit">Registrar Instituição</button>
+        <button type="button" id="btn-aleatorio">Preencher Aleatório</button>
+    </form>
+
+    <p id="resultado"></p>
+
+    <script>
+        function gerarNumeroAleatorio(length) {
+            let result = "";
+            const chars = "0123456789";
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function gerarCNPJFormatado() {
+            const bloco1 = gerarNumeroAleatorio(2);
+            const bloco2 = gerarNumeroAleatorio(3);
+            const bloco3 = gerarNumeroAleatorio(3);
+            const bloco4 = gerarNumeroAleatorio(4);
+            const bloco5 = gerarNumeroAleatorio(2);
+            return `${bloco1}.${bloco2}.${bloco3}/${bloco4}-${bloco5}`;
+        }
+
+        document.getElementById("btn-aleatorio").addEventListener("click", () => {
+            const nomesFicticios = [
+                "Instituição Exemplo LTDA",
+                "Banco Teste S/A",
+                "Financeira Fictícia ME",
+                "Crediário Alpha",
+                "Instituto Beta de Crédito"
+            ];
+            const nomeAleatorio = nomesFicticios[Math.floor(Math.random() * nomesFicticios.length)];
+            
+            document.getElementById("nome_fantasia").value = nomeAleatorio;
+            document.getElementById("cnpj").value = gerarCNPJFormatado();
+        });
+
+        document.getElementById("form-instituicao").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const dados = {
+                nome_fantasia: document.getElementById("nome_fantasia").value.trim(),
+                cnpj: document.getElementById("cnpj").value.trim()
+            };
+
+            const resposta = await fetch("/registrar-instituicao", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(dados)
+            });
+
+            const resultado = await resposta.json();
+            const p = document.getElementById("resultado");
+
+            if (resposta.ok && resultado.token_acesso) {
+                p.className = "sucesso";
+                p.innerHTML = `✅ Instituição registrada com sucesso.<br><strong>Token de acesso:</strong> ${resultado.token_acesso}`;
+            } else {
+                p.className = "erro";
+                p.textContent = resultado.erro || "Erro inesperado.";
+            }
+        });
+    </script>
+</body>
+</html>

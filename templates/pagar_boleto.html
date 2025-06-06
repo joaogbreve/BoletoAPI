@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <title>Pagar Boleto</title>
+    <style>
+        /* Reset básico */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 40px;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+
+        form#form-verificacao {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 6px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="checkbox"] {
+            margin-top: 6px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        /* Checkbox inline label */
+        label > input[type="checkbox"] {
+            width: auto;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        label > label {
+            font-weight: normal;
+            color: #555;
+            margin-left: 4px;
+            cursor: pointer;
+        }
+
+        button[type="submit"] {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            transition: background-color 0.3s ease;
+            font-size: 16px;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #1a252f;
+        }
+
+        #btn-pagar {
+            margin-top: 20px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            display: none;
+            width: 100%;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        #btn-pagar:hover {
+            background-color: #1e8449;
+        }
+
+        #confirmacao-pagamento {
+            max-width: 600px;
+            margin: 20px auto 0 auto;
+            background: #fff;
+            padding: 20px 30px;
+            border-radius: 6px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: none;
+            text-align: center;
+        }
+
+        #confirmacao-pagamento p {
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        #confirmacao-pagamento button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            margin: 0 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        #confirmacao-pagamento button:hover {
+            background-color: #1a252f;
+        }
+
+        #resultado {
+            max-width: 600px;
+            margin: 20px auto 0 auto;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px 20px;
+            border-radius: 6px;
+        }
+
+        #resultado.valido {
+            color: #27ae60;
+            background-color: #d4edda;
+            border: 1px solid #27ae60;
+        }
+
+        #resultado.suspeito {
+            color: #d68a00;
+            background-color: #fff3cd;
+            border: 1px solid #d68a00;
+        }
+
+        #resultado.ignorado {
+            color: #c0392b;
+            background-color: #f8d7da;
+            border: 1px solid #c0392b;
+        }
+
+        #resultado.erro {
+            color: #c0392b;
+            background-color: #f8d7da;
+            border: 1px solid #c0392b;
+        }
+
+        /* Modal Termos */
+        #modal-termos {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            display: flex;
+        }
+
+        #modal-termos > div {
+            background: white;
+            padding: 20px 30px;
+            max-width: 400px;
+            border-radius: 6px;
+            text-align: justify;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+
+        #modal-termos h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        #modal-termos button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+            width: 100%;
+            font-size: 16px;
+        }
+
+        #modal-termos button:hover {
+            background-color: #1a252f;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simulador de Pagamento de Boleto</h1>
+
+    <form id="form-verificacao">
+        <label>Código de Barras:<br>
+            <input type="text" id="codigo_barras" required>
+        </label><br><br>
+
+        <label>CPF/CNPJ do Pagador:<br>
+            <input type="text" id="pagador_cpf_cnpj" required />
+        </label><br><br>
+
+        <label>Nome do Pagador:<br>
+            <input type="text" id="pagador_nome" required />
+        </label><br><br>
+
+        <label>
+        Email:<br>
+        <input type="email" id="email_pagador" placeholder="seu@email.com" />
+        <input type="checkbox" id="notificar_email" />
+        <label for="notificar_email" style="display:inline;">Notificar</label>
+    </label><br><br>
+
+    <!-- Telefone + checkbox -->
+    <label>
+        Telefone:<br>
+        <input type="tel" id="telefone_pagador" placeholder="(99) 99999-9999" />
+        <input type="checkbox" id="notificar_telefone" />
+        <label for="notificar_telefone" style="display:inline;">Notificar</label>
+    </label><br><br>
+
+    <!-- Checkbox aceito termos -->
+    <label>
+        <input type="checkbox" id="aceito_termos" required />
+        Aceito os <a href="#" id="link-termos">termos</a>
+    </label><br><br>
+
+    <button type="submit">Verificar Boleto</button>
+    </form>
+
+    <!-- Modal simples para os termos -->
+    <div id="modal-termos" style="
+        display:none;
+        position: fixed;
+        top: 0; left: 0; right:0; bottom:0;
+        background: rgba(0,0,0,0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    ">
+        <div style="
+            background: white;
+            padding: 20px;
+            max-width: 400px;
+            border-radius: 5px;
+            text-align: justify;
+        ">
+            <h2>Termos e Condições</h2>
+            <p>
+                Ao utilizar este simulador, você concorda que as informações fornecidas são fictícias e
+                apenas para fins educacionais e de teste. Não nos responsabilizamos por qualquer uso indevido.
+            </p>
+            <button id="fechar-termos">Fechar</button>
+        </div>
+    </div>
+    </form>
+
+    <div id="resultado"></div>
+
+    <button id="btn-pagar">Pagar Boleto</button>
+
+    <div id="confirmacao-pagamento">
+        <p>Tem certeza que deseja pagar este boleto?</p>
+        <button id="confirmar-pagamento">Sim</button>
+        <button id="cancelar-pagamento">Não</button>
+    </div>
+
+<script>
+    
+    // Exibir modal de termos
+    document.getElementById("link-termos").addEventListener("click", function(e) {
+        e.preventDefault();
+        const modal = document.getElementById("modal-termos");
+        modal.style.display = "flex";
+    });
+
+    // Fechar modal de termos
+    document.getElementById("fechar-termos").addEventListener("click", function() {
+        document.getElementById("modal-termos").style.display = "none";
+    });
+
+    function validarEmail(email) {
+    // Regex simples para email básico
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+    }
+
+    function validarTelefone(tel) {
+        // Só números e entre 10 e 11 dígitos (ex: 11999999999)
+        const digits = tel.replace(/\D/g, '');
+        return digits.length >= 10 && digits.length <= 11;
+    }
+
+    function mascararCpfCnpj(cpfcnpj) {
+        if (!cpfcnpj || cpfcnpj.length < 5) return cpfcnpj;
+        const primeiros = cpfcnpj.slice(0, 3);
+        const ultimos = cpfcnpj.slice(-2);
+        return primeiros + "..." + ultimos;
+    }
+
+    function primeiroNome(nomeCompleto) {
+        if (!nomeCompleto) return "";
+        return nomeCompleto.trim().split(" ")[0];
+    }
+
+    function gerarCpfCnpjFake() {
+        const length = Math.random() < 0.5 ? 11 : 14;
+        return Array.from({ length }, () => Math.floor(Math.random() * 10)).join('');
+    }
+
+    function gerarNomeFake() {
+        const nomes = ["Carlos Silva", "Maria Souza", "João Pereira", "Ana Oliveira", "Pedro Lima", "Laura Costa"];
+        return nomes[Math.floor(Math.random() * nomes.length)];
+    }
+
+    const form = document.getElementById("form-verificacao");
+    const resultadoDiv = document.getElementById("resultado");
+    const btnPagar = document.getElementById("btn-pagar");
+    const confirmDiv = document.getElementById("confirmacao-pagamento");
+    const btnConfirmar = document.getElementById("confirmar-pagamento");
+    const btnCancelar = document.getElementById("cancelar-pagamento");
+
+    let boletoExiste = false;
+    let codigoBarrasAtual = "";
+    let nomePagadorAtual = "";
+    let cpfCnpjPagadorAtual = "";
+
+    // Variáveis para armazenar dados fake gerados
+    let nomeFake = "";
+    let cnpjFake = "";
+    let pagadorNomeFake = "";
+    let pagadorCpfCnpjFake = "";
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        codigoBarrasAtual = document.getElementById("codigo_barras").value.trim();
+        nomePagadorAtual = document.getElementById("pagador_nome").value.trim();
+        cpfCnpjPagadorAtual = document.getElementById("pagador_cpf_cnpj").value.trim();
+
+        if (!codigoBarrasAtual || !nomePagadorAtual || !cpfCnpjPagadorAtual) {
+            resultadoDiv.textContent = "Preencha todos os campos.";
+            resultadoDiv.className = "";
+            btnPagar.style.display = "none";
+            return;
+        }
+
+        const response = await fetch("/verificar-boleto", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                codigo_barras: codigoBarrasAtual,
+                pagador_cad_nome: nomePagadorAtual,
+                pagador_cad_cpf_cnpj: cpfCnpjPagadorAtual
+            })
+        });
+
+        const data = await response.json();
+        btnPagar.style.display = "none";
+        confirmDiv.style.display = "none";
+        boletoExiste = false;
+
+        if (data.status === "valido") {
+            boletoExiste = true;
+
+            resultadoDiv.innerHTML = `
+                ✅ <strong>Boleto válido!</strong><br>
+                Nome do Beneficiário: ${data.beneficiario_nome || "Desconhecido"}<br>
+                CNPJ do Beneficiário: ${data.beneficiario_cnpj || "Desconhecido"}<br>
+                Pagador (CPF/CNPJ): ${mascararCpfCnpj(data.pagador_cad_cpf_cnpj || "Não informado")}<br>
+                Primeiro nome do Pagador: ${primeiroNome(data.pagador_cad_nome || "Desconhecido")}
+            `;
+            resultadoDiv.className = "valido";
+            btnPagar.style.display = "inline-block";
+
+            // Limpa dados fake caso existam de uso anterior
+            nomeFake = "";
+            cnpjFake = "";
+            pagadorNomeFake = "";
+            pagadorCpfCnpjFake = "";
+
+        } else if (data.status === "suspeito") {
+            // Monta mensagem de divergência e blacklist
+            let divergenciasMsg = (data.divergencias || []).length > 0
+                ? "⚠️ Boleto suspeito: " + data.divergencias.join(", ") + "<br><br>"
+                : "⚠️ Boleto suspeito.<br><br>";
+
+            let blacklistMsg = "";
+            if (data.beneficiario_blacklist && data.pagador_blacklist) {
+                blacklistMsg = "<br>🚫 <strong>Atenção:</strong> Beneficiário e Pagador estão na blacklist.";
+            } else if (data.beneficiario_blacklist) {
+                blacklistMsg = "<br>🚫 <strong>Atenção:</strong> Beneficiário está na blacklist.";
+            } else if (data.pagador_blacklist) {
+                blacklistMsg = "<br>🚫 <strong>Atenção:</strong> Pagador está na blacklist.";
+            }
+
+            resultadoDiv.innerHTML = `
+                ${divergenciasMsg}
+                Nome do Beneficiário: ${data.beneficiario_nome || "Desconhecido"}<br>
+                CNPJ do Beneficiário: ${data.beneficiario_cnpj || "Desconhecido"}<br>
+                Pagador (CPF/CNPJ): ${mascararCpfCnpj(data.pagador_cad_cpf_cnpj || "Não informado")}<br>
+                Primeiro nome do Pagador: ${primeiroNome(data.pagador_cad_nome || "Desconhecido")}
+                ${blacklistMsg}
+            `;
+            resultadoDiv.className = "suspeito";
+            btnPagar.style.display = "inline-block";
+
+            // Limpa dados fake caso existam de uso anterior
+            nomeFake = "";
+            cnpjFake = "";
+            pagadorNomeFake = "";
+            pagadorCpfCnpjFake = "";
+        }
+        
+        else if (data.status === "pago") {
+            resultadoDiv.innerHTML = `
+                🟦 <strong>Este boleto já foi pago.</strong><br>
+                Nome do Beneficiário: ${data.beneficiario_nome || "Desconhecido"}<br>
+                CNPJ do Beneficiário: ${data.beneficiario_cnpj || "Desconhecido"}<br>
+                Pagador (CPF/CNPJ): ${mascararCpfCnpj(data.pagador_cad_cpf_cnpj || "Não informado")}<br>
+                Primeiro nome do Pagador: ${primeiroNome(data.pagador_cad_nome || "Desconhecido")}
+            `;
+            resultadoDiv.className = "ignorado"; // Ou cria uma classe "pago" se quiser outra cor
+            btnPagar.style.display = "none";
+        }
+
+        else if (data.status === "ignorado") {
+            nomeFake = gerarNomeFake();
+            cnpjFake = gerarCpfCnpjFake();
+            pagadorNomeFake = gerarNomeFake();
+            pagadorCpfCnpjFake = gerarCpfCnpjFake();
+
+            resultadoDiv.innerHTML = `
+                ⚠️ <strong>Boleto não encontrado!</strong><br>
+                Nome do Beneficiário: ${nomeFake}<br>
+                CNPJ do Beneficiário: ${cnpjFake}<br>
+                Pagador (CPF/CNPJ): ${mascararCpfCnpj(pagadorCpfCnpjFake)}<br>
+                Primeiro nome do Pagador: ${primeiroNome(pagadorNomeFake)}
+            `;
+            resultadoDiv.className = "ignorado";
+            btnPagar.style.display = "inline-block";
+
+        } else {
+            resultadoDiv.textContent = data.erro || "Erro inesperado.";
+            resultadoDiv.className = "erro";
+            btnPagar.style.display = "none";
+
+            // Limpa dados fake para evitar envio incorreto
+            nomeFake = "";
+            cnpjFake = "";
+            pagadorNomeFake = "";
+            pagadorCpfCnpjFake = "";
+        }
+    });
+
+    btnPagar.addEventListener("click", () => {
+        confirmDiv.style.display = "block";
+    });
+
+    btnCancelar.addEventListener("click", () => {
+        confirmDiv.style.display = "none";
+    });
+
+    btnConfirmar.addEventListener("click", async () => {
+        const dadosParaEnviar = {
+        codigo_barras: codigoBarrasAtual,
+        pagador_cpf_cnpj: cpfCnpjPagadorAtual,
+        nome_pagador: nomePagadorAtual,
+        aceita_termos: document.getElementById("aceito_termos").checked,
+        telefone: document.getElementById("telefone_pagador").value.trim() || null,
+        notificar_telefone: document.getElementById("notificar_telefone").checked,
+        email: document.getElementById("email_pagador").value.trim() || null,
+        notificar_email: document.getElementById("notificar_email").checked,
+        // Dados fake se necessário
+        cnpj_beneficiado_fake: cnpjFake,
+        nome_beneficiado_fake: nomeFake,
+        pagador_cad_cpf_cnpj_fake: pagadorCpfCnpjFake,
+        pagador_cad_nome_fake: pagadorNomeFake
+    };
+
+        const response = await fetch("/pagar-boleto", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dadosParaEnviar)
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.sucesso) {
+            resultadoDiv.textContent = "✅ Boleto pago com sucesso!";
+            resultadoDiv.className = "valido";
+            btnPagar.style.display = "none";
+            confirmDiv.style.display = "none";
+
+            // Limpa dados fake após pagamento
+            nomeFake = "";
+            cnpjFake = "";
+            pagadorNomeFake = "";
+            pagadorCpfCnpjFake = "";
+
+        } else {
+            resultadoDiv.textContent = data.erro || "Erro ao pagar boleto.";
+            resultadoDiv.className = "erro";
+        }
+    });
+</script>
+</body>
+</html>

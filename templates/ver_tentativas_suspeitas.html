@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Tentativas Suspeitas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 40px;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #2c3e50;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #eef;
+        }
+
+        button {
+            background-color: #e74c3c;
+            border: none;
+            padding: 6px 12px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #c0392b;
+        }
+
+        form[action="/desbloquear"] button {
+            background-color: #2ecc71;
+        }
+
+        form[action="/desbloquear"] button:hover {
+            background-color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lista de Tentativas Suspeitas</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Código de Barras</th>
+                <th>CNPJ do Beneficiário</th>
+                <th>Nome do Beneficiário</th>
+                <th>CPF/CNPJ do Pagador Real</th>
+                <th>Nome do Pagador Real</th>
+                <th>CPF/CNPJ do Pagador Cadastrado</th>
+                <th>Nome do Pagador Cadastrado</th>
+                <th>Motivo</th>
+                <th>Detalhes</th>
+                <th>Data da Verificação</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tentativa in tentativas %}
+            <tr>
+                <td>{{ tentativa.id }}</td>
+                <td>{{ tentativa.codigo_barras }}</td>
+                <td>{{ tentativa.cnpj_benficiado }}</td>
+                <td>{{ tentativa.nome_benficiado }}</td>
+                <td>{{ tentativa.pagador_cpf_cnpj }}</td>
+                <td>{{ tentativa.pagador_nome }}</td>
+                <td>{{ tentativa.pagador_cad_cpf_cnpj }}</td>
+                <td>{{ tentativa.pagador_cad_nome }}</td>
+                <td>{{ tentativa.motivo }}</td>
+                <td>{{ tentativa.detalhes }}</td>
+                <td>{{ tentativa.data_verificacao }}</td>
+                <td>
+                    {% if tentativa.codigo_barras in codigos_bloqueados %}
+                        <form method="POST" action="/desbloquear" style="display:inline;">
+                            <input type="hidden" name="id" value="{{ tentativa.id }}">
+                            <button type="submit">DESBLOQUEAR</button>
+                        </form>
+                    {% else %}
+                        <form method="POST" action="/bloquear" style="display:inline;">
+                            <input type="hidden" name="id" value="{{ tentativa.id }}">
+                            <button type="submit">BLOCK</button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
