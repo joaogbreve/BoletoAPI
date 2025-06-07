@@ -1,27 +1,85 @@
-// C:\Users\carlos.pereira\Documents\Projeto\BoletoAPI\requirements.txt
+Dependência principal da aplicação
 Flask==2.3.2
 
+ -----------------------------------------------
+ Endpoints REST disponíveis na API de validação
 
-http://localhost:5000/cadastrar-instituicao
-http://localhost:5000/gerar-boleto
-http://localhost:5000/pagar-boleto
+ POST   /cadastrar-instituicao       -> Cadastra nova instituição financeira parceira
+ POST   /gerar-boleto                 -> Gera novo boleto vinculado a uma instituição
+ POST   /pagar-boleto                 -> Executa o pagamento de boleto e aplica validações
+ GET    /tentativas-suspeitas         -> Retorna lista de tentativas suspeitas registradas
+ GET    /blacklist                    -> Retorna blacklist com CPFs/CNPJs com fraudes
 
-código de barras -> cpf/cnpj -> nome social
+ -----------------------------------------------
+ Modelo de fluxo de verificação: código de barras -> CPF/CNPJ -> Nome social
 
-API recebe código de barras, cpf/cnpj e nome social para pagamento do boleto:
+ Quando o cliente tenta pagar um boleto, o sistema segue as etapas abaixo:
 
-Código de barras presente no banco -> autoriza
-Código não está presente -> verifica cpf/cnpj
-                            presente -> erro de código de barras/vencido/inválido
-                            ausente -> compara o cpf/cnpj com o nome social apresentado
-                                    ausente -> beneficiário não cadastrado no sistema
-                                    presente -> boleto suspeito, pagamento não recomendado
-                                            
-To do:
+ 1. Verifica se o código de barras existe na base de boletos:
+    - Se SIM → Autorização imediata do pagamento
+    - Se NÃO → Continua validação
 
-1. Atualizar tabela boleto para incluir status.
-2. Criar método para criador do boleto atualizar status do boleto.
-3. Deletar boleto pago 1 mês após data de vencimento/pagamento.
-4. Atualizar verificacao.py e pagar_boleto.html.
-5. Python -> Java (Springboot)
+2. Se o código de barras **não for encontrado**:
+    → Verifica se o CPF/CNPJ do beneficiário já aparece em boletos válidos da base:
 
+    - Se SIM → Erro: boleto inválido, vencido, ou já registrado (não repetir pagamento)
+    - Se NÃO → Realiza verificação adicional:
+
+3. Verifica se há correspondência entre CPF/CNPJ e nome social:
+
+    - Se NÃO houver correspondência → Beneficiário não cadastrado
+    - Se HOUVER correspondência → O boleto **ainda não é considerado suspeito**,
+    mas será autorizado **com alerta**: pagamento não recomendado
+
+    → Caso o pagamento ocorra, os dados são armazenados na **tabela de tentativas suspeitas**
+
+    → A partir daí, em novas transações, se o CPF/CNPJ estiver na blacklist,
+    o sistema emitirá **alerta explícito de risco**, mas **não bloqueará o pagamento**
+
+
+ -----------------------------------------------
+ Objetivo estratégico da API
+
+ - Atuar como validador centralizado de boletos no ecossistema financeiro
+ - Integrar-se diretamente com os aplicativos das instituições financeiras parceiras
+ - Eliminar a necessidade de instalação por parte do usuário final
+ - Permitir uso mediante aceite dos termos de uso pelo cliente
+
+ -----------------------------------------------
+ Armazenamento e estrutura dos boletos
+
+ A base unificada armazena boletos de múltiplas instituições com os seguintes dados:
+
+ - UUID do boleto
+ - Código de barras
+ - Data de vencimento
+ - Valor do boleto e valor pago (se houver)
+ - Status do boleto (pendente, pago, cancelado)
+ - Pagador esperado: CPF/CNPJ e nome
+ - Pagador real (registrado no momento do pagamento)
+ - Beneficiário: nome e CNPJ
+ - ID da instituição emissora
+ - Flags: aceite de termos, notificação por telefone e email
+ - Timestamps: criação e pagamento
+
+ -----------------------------------------------
+ Registro de tentativas suspeitas
+
+ - Quando o pagador real é diferente do pagador esperado:
+     → O boleto é incluído automaticamente na tabela `tentativas_suspeitas`
+
+ - Quando um boleto não é encontrado na base:
+     → Também é registrado como tentativa suspeita
+
+ - Cada instituição tem visibilidade exclusiva dos registros oriundos de sua própria base
+
+ -----------------------------------------------
+ Blacklist
+
+ - As instituições podem inserir CPFs/CNPJs na blacklist manualmente, com base em denúncias
+ - No momento do pagamento, a API valida se o beneficiário ou o pagador constam na blacklist
+     → Se sim, um alerta é emitido ao cliente
+     → O alerta NÃO impede o pagamento, apenas o desaconselha
+
+ - Se boletos suspeitos forem confirmados posteriormente como legítimos:
+     → Eles são automaticamente removidos da lista de tentativas suspeitas
